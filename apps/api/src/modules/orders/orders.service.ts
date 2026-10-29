@@ -1,7 +1,13 @@
 
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
-import { events, orders, orderItems, ticketTypes } from '../../db/schema.js';
+import {
+    events,
+    orders,
+    orderItems,
+    ticketTypes,
+    tickets,
+  } from '../../db/schema.js';
 
 const RESERVATION_MINUTES = 10;
 
@@ -122,3 +128,121 @@ export async function createOrder(input: CreateOrderInput) {
     };
   });
 }
+
+
+export async function confirmOrder(orderId: string) {
+    const result = await db.transaction(async (tx) => {
+      // Lock the order row to serialize concurrent confirmations.
+      const [order] = await tx
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .for('update')
+        .limit(1);
+  
+      if (!order) {
+        return { outcome: 'NOT_FOUND' as const };
+      }
+  
+      if (order.status === 'CONFIRMED') {
+        return {
+          outcome: 'CONFIRMED' as const,
+          order,
+        };
+      }
+  
+      if (order.status !== 'PENDING') {
+        return {
+          outcome: 'INVALID_STATUS' as const,
+          status: order.status,
+        };
+      }
+  
+      const items = await tx
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id));
+  
+      // Compare against the database clock, not the API server clock.
+      const result = await tx.execute<{ expired: boolean }>(
+        sql`SELECT ${order.expiresAt} <= now() AS expired`,
+      );
+      
+      const expired = result.rows[0].expired;
+  
+      if (expired) {
+        for (const item of items) {
+          await tx
+            .update(ticketTypes)
+            .set({
+              reservedQuantity: sql`${ticketTypes.reservedQuantity} - ${item.quantity}`,
+            })
+            .where(eq(ticketTypes.id, item.ticketTypeId));
+        }
+  
+        await tx
+          .update(orders)
+          .set({ status: 'EXPIRED' })
+          .where(eq(orders.id, order.id));
+  
+        // Commit the release instead of throwing and rolling back.
+        return { outcome: 'EXPIRED' as const };
+      }
+  
+      for (const item of items) {
+        await tx
+          .update(ticketTypes)
+          .set({
+            reservedQuantity: sql`${ticketTypes.reservedQuantity} - ${item.quantity}`,
+            soldQuantity: sql`${ticketTypes.soldQuantity} + ${item.quantity}`,
+          })
+          .where(eq(ticketTypes.id, item.ticketTypeId));
+      }
+  
+      const ticketRows = items.flatMap((item) =>
+        Array.from({ length: item.quantity }, () => ({
+          orderId: order.id,
+          ticketTypeId: item.ticketTypeId,
+          purchasePriceCents: item.unitPriceCents,
+        })),
+      );
+  
+      const issuedTickets = await tx
+        .insert(tickets)
+        .values(ticketRows)
+        .returning();
+  
+      const [confirmedOrder] = await tx
+        .update(orders)
+        .set({
+          status: 'CONFIRMED',
+          confirmedAt: sql`now()`,
+        })
+        .where(eq(orders.id, order.id))
+        .returning();
+  
+      return {
+        outcome: 'CONFIRMED' as const,
+        order: confirmedOrder,
+        tickets: issuedTickets,
+      };
+    });
+  
+    if (result.outcome === 'NOT_FOUND') {
+      throw new OrderError('Order not found', 404);
+    }
+  
+    if (result.outcome === 'EXPIRED') {
+      throw new OrderError('Order has expired', 409);
+    }
+  
+    if (result.outcome === 'INVALID_STATUS') {
+      throw new OrderError(
+        `Cannot confirm an order with status ${result.status}`,
+        409,
+      );
+    }
+  
+    return result.order;
+  }
+  

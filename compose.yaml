@@ -17,5 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ticketflow
+      POSTGRES_PASSWORD: ticketflow
+      POSTGRES_DB: ticketflow_test
+    ports:
+      - "127.0.0.1:5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketflow -d ticketflow_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:

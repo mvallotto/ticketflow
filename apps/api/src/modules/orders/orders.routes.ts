@@ -2,6 +2,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   createOrder,
+  confirmOrder,
   OrderError,
   type CreateOrderInput,
 } from './orders.service.js';
@@ -61,4 +62,34 @@ export async function orderRoutes(app: FastifyInstance) {
       }
     },
   );
+
+  app.post<{ Params: { id: string } }>(
+    '/orders/:id/confirm',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const order = await confirmOrder(request.params.id);
+  
+        return reply.code(200).send(order);
+      } catch (error) {
+        if (error instanceof OrderError) {
+          return reply.code(error.statusCode).send({
+            error: error.message,
+          });
+        }
+  
+        throw error;
+      }
+    },
+  );  
 }
