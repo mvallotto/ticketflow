@@ -1,0 +1,13 @@
+{
+  "name": "ticketflow",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @ticketflow/api",
+    "build:api": "npm run build -w @ticketflow/api",
+    "typecheck:api": "npm run typecheck -w @ticketflow/api"
+  }
+}
