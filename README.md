@@ -71,7 +71,7 @@ apps/web
 
 The backend uses Fastify, TypeScript, PostgreSQL and Drizzle. Routes validate HTTP input, while services handle reservations and database transactions. Drizzle keeps the schema and queries close to TypeScript, with SQL used directly where locking and inventory updates need it.
 
-The frontend uses React, Vite, Tailwind CSS and LESS. It calls the API with fetch and keeps state inside the views. There is no global state library: for the current number of screens, local state and context are enough. This keeps dependencies down, but means request cancellation and late responses need to be handled explicitly.
+The frontend uses React and Vite. Component styles are written in LESS, with shared colors in `src/styles/variables.less`; Tailwind supplies the base CSS reset. It calls the API with fetch and keeps state inside the views. There is no global state library: for the current number of screens, local state and context are enough. This keeps dependencies down, but means request cancellation and late responses need to be handled explicitly.
 
 The database stores events, ticket types, orders, order items and issued tickets. Ticket types track capacity, reserved quantity and sold quantity. Availability is calculated from those values. Order items also keep the price used when the reservation was created.
 

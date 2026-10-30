@@ -117,27 +117,27 @@ function VisitorOrders({ activeVisitor }: { activeVisitor: Visitor }) {
   }
 
   if (loading) {
-    return <p className="text-slate-400">Loading orders...</p>;
+    return <p className="message">Loading orders...</p>;
   }
 
   return (
     <div>
-      <div className="mb-8">
-        <p className="text-sm font-medium text-indigo-400">
+      <div className="view-heading">
+        <p className="view-eyebrow">
           {activeVisitor.name}
         </p>
 
-        <h2 className="mt-2 text-3xl font-bold">
+        <h2 className="view-heading__title">
           My Orders
         </h2>
 
-        <p className="mt-3 text-slate-400">
+        <p className="view-description">
           Your reservations and confirmed bookings.
         </p>
       </div>
 
       {error && (
-        <p role="alert" className="mb-6 text-red-400">
+        <p role="alert" className="orders-error">
           {error}
         </p>
       )}
@@ -148,45 +148,45 @@ function VisitorOrders({ activeVisitor }: { activeVisitor: Visitor }) {
           setError(null);
           void refreshOrders();
         }}
-        className="mb-6 rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+        className="button button--secondary orders-refresh"
       >
         Refresh orders
       </button>
 
       {orders.length === 0 && !error ? (
-        <p className="text-slate-400">
+        <p className="message">
           You haven't made any reservations yet.
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="card-list">
 
           {orders.map((order) => (
             <article
               key={order.id}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-6"
+              className="order-card"
             >
-              <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="order-card__header">
                 <div>
-                  <p className="text-xs text-slate-400">
+                  <p className="detail-label">
                     Order ID
                   </p>
-                  <p className="mt-1 break-all font-mono text-sm">
+                  <p className="order-id">
                     {order.id}
                   </p>
                 </div>
 
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-sm">
+                <span className="order-status">
                   {order.status}
                 </span>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+              <div className="order-card__footer">
                 <div>
-                  <p className="text-sm text-slate-400">
+                  <p className="field-label">
                     {new Date(order.createdAt).toLocaleString('en-GB')}
                   </p>
 
-                  <p className="mt-2 text-xl font-bold">
+                  <p className="order-card__amount">
                     {formatPrice(order.totalCents)}
                   </p>
                 </div>
@@ -197,7 +197,7 @@ function VisitorOrders({ activeVisitor }: { activeVisitor: Visitor }) {
                     type="button"
                     disabled={confirmingId !== null}
                     onClick={() => void handleConfirm(order.id)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 font-medium hover:bg-emerald-500 disabled:opacity-50"
+                    className="button button--confirm order-card__confirm"
                   >
                     {confirmingId === order.id
                       ? 'Confirming...'

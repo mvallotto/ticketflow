@@ -59,35 +59,35 @@ export function OrderConfirmation({
   const message = messages[status] ?? { title: 'Order details', description: 'Check your order status below.' };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-8">
-      <p className="text-sm font-medium text-indigo-400">
+    <div className="order-confirmation">
+      <p className="view-eyebrow">
         Order details
       </p>
 
-      <h2 className="mt-3 text-2xl font-bold">
+      <h2 className="order-confirmation__title">
         {message.title}
       </h2>
 
-      <p className="mt-3 text-slate-400">
+      <p className="view-description">
         {message.description}
       </p>
 
-      <div className="mt-6 space-y-3 rounded-lg bg-slate-800 p-5">
+      <div className="order-confirmation__details">
         <div>
-          <p className="text-xs text-slate-400">Order ID</p>
-          <p className="mt-1 break-all font-mono text-sm">
+          <p className="detail-label">Order ID</p>
+          <p className="order-id">
             {order.id}
           </p>
         </div>
 
         <div>
-          <p className="text-xs text-slate-400">Status</p>
-          <p className="mt-1 font-semibold">{status}</p>
+          <p className="detail-label">Status</p>
+          <p className="order-confirmation__value">{status}</p>
         </div>
 
         <div>
-          <p className="text-xs text-slate-400">Total</p>
-          <p className="mt-1 font-semibold">
+          <p className="detail-label">Total</p>
+          <p className="order-confirmation__value">
             {new Intl.NumberFormat('en-NL', {
               style: 'currency',
               currency: 'EUR',
@@ -97,10 +97,10 @@ export function OrderConfirmation({
 
         {status === 'PENDING' && (
           <div>
-            <p className="text-xs text-slate-400">
+            <p className="detail-label">
               Reservation expires at
             </p>
-            <p className="mt-1 text-sm">
+            <p className="order-confirmation__expiry">
               {new Date(order.expiresAt).toLocaleString('en-GB')}
             </p>
           </div>
@@ -108,7 +108,7 @@ export function OrderConfirmation({
       </div>
 
       {error && (
-        <p role="alert" className="mt-5 text-sm text-red-400">
+        <p role="alert" className="order-confirmation__error">
           {error}
         </p>
       )}
@@ -118,7 +118,7 @@ export function OrderConfirmation({
           type="button"
           disabled={submitting}
           onClick={() => void handleConfirm()}
-          className="mt-6 w-full rounded-lg bg-emerald-600 px-5 py-3 font-semibold hover:bg-emerald-500 disabled:opacity-50"
+          className="button button--confirm order-confirmation__confirm"
         >
           {submitting ? 'Confirming...' : 'Confirm booking'}
         </button>
@@ -127,7 +127,7 @@ export function OrderConfirmation({
       <button
         type="button"
         onClick={onBack}
-        className="mt-4 w-full rounded-lg border border-slate-700 px-5 py-3 font-medium hover:bg-slate-800"
+        className="button button--secondary order-confirmation__back"
       >
         Back to events
       </button>

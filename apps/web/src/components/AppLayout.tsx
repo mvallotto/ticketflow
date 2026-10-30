@@ -3,10 +3,10 @@ import { VisitorSwitcher } from './VisitorSwitcher';
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-800 bg-slate-900">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-          <h1 className="text-2xl font-bold tracking-tight">
+    <div className="app-layout">
+      <header className="app-header">
+        <div className="app-header__content">
+          <h1 className="app-header__title">
             TicketFlow
           </h1>
 
@@ -14,7 +14,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="app-main">
         {children}
       </main>
     </div>

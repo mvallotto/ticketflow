@@ -21,18 +21,15 @@ function App() {
 
   return (
     <AppLayout>
-      <nav className="mb-8 flex gap-4 border-b border-slate-800 pb-4">
+      <nav className="navigation">
         <button
           type="button"
           onClick={() => {
             setCurrentPage('events');
             backToEvents();
           }}
-          className={
-            currentPage === 'events'
-              ? 'font-semibold text-indigo-400'
-              : 'text-slate-400 hover:text-white'
-          }
+          className="navigation__link"
+          aria-current={currentPage === 'events' ? 'page' : undefined}
         >
           Events
         </button>
@@ -40,11 +37,8 @@ function App() {
         <button
           type="button"
           onClick={() => setCurrentPage('orders')}
-          className={
-            currentPage === 'orders'
-              ? 'font-semibold text-indigo-400'
-              : 'text-slate-400 hover:text-white'
-          }
+          className="navigation__link"
+          aria-current={currentPage === 'orders' ? 'page' : undefined}
         >
           My Orders
         </button>
@@ -65,16 +59,16 @@ function App() {
         />
       ) : (
         <>
-          <div className="mb-8">
-            <p className="text-sm font-medium text-indigo-400">
+          <div className="view-heading">
+            <p className="view-eyebrow">
               Welcome, {activeVisitor.name}
             </p>
 
-            <h2 className="mt-2 text-3xl font-bold">
+            <h2 className="view-heading__title">
               Discover events
             </h2>
 
-            <p className="mt-3 text-slate-400">
+            <p className="view-description">
               Explore upcoming events and reserve your tickets.
             </p>
           </div>

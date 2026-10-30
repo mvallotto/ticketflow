@@ -110,7 +110,7 @@ describe('Checkout recovery', () => {
     await act(async () => pending[1].resolve(availability(0)));
     await act(async () => pending[0].resolve(availability(1)));
     expect(container.textContent).toContain('0 available');
-    expect(container.querySelector('span.w-6')?.textContent).toBe('1');
+    expect(container.querySelector('output[aria-label="General Admission quantity"]')?.textContent).toBe('1');
     expect(button('Reserve tickets').disabled).toBe(true);
   });
 
@@ -172,7 +172,7 @@ describe('Checkout recovery', () => {
     await refresh();
 
     expect(container.textContent).toContain('1 available');
-    expect(container.querySelector('span.w-6')?.textContent).toBe('1');
+    expect(container.querySelector('output[aria-label="General Admission quantity"]')?.textContent).toBe('1');
     expect(button('Reserve tickets').disabled).toBe(false);
     expect(container.textContent).not.toContain('Failed to load event');
   });
@@ -352,7 +352,7 @@ describe('Checkout recovery', () => {
       await render();
 
       expect(container.textContent).toContain('0 available');
-      expect(container.querySelector('span.w-6')?.textContent).toBe('1');
+      expect(container.querySelector('output[aria-label="General Admission quantity"]')?.textContent).toBe('1');
       expect(button('Retry reservation').disabled).toBe(false);
       await click('Retry reservation');
       expect(requests[1]).toEqual(requests[0]);
@@ -448,7 +448,7 @@ describe('Checkout recovery', () => {
       );
     });
 
-    expect(container.querySelector('span.w-6')?.textContent).toBe('1');
+    expect(container.querySelector('output[aria-label="General Admission quantity"]')?.textContent).toBe('1');
     expect(button('Retry reservation').disabled).toBe(false);
     expect(JSON.parse(sessionStorage.getItem(storageKey())!).request).toEqual(original);
     expect(fetchMock.mock.calls.every(([, options]) => options?.method !== 'POST')).toBe(true);

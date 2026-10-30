@@ -210,16 +210,16 @@ function VisitorEventDetail({
 		
 
   if (loading) {
-    return <p className="text-slate-400">Loading tickets...</p>;
+    return <p className="message">Loading tickets...</p>;
   }
 
   if (error || !event) {
     return (
       <div>
-        <button onClick={onBack} className="mb-6 text-indigo-400">
+        <button onClick={onBack} className="back-link back-link--load-error">
           ← Back to events
         </button>
-        <p role="alert" className="text-red-400">
+        <p role="alert" className="message message--error">
           {error ?? 'Event not found'}
         </p>
       </div>
@@ -231,47 +231,47 @@ function VisitorEventDetail({
       <button
         type="button"
         onClick={onBack}
-        className="mb-6 text-sm text-indigo-400 hover:text-indigo-300"
+        className="back-link"
       >
         ← Back to events
       </button>
 
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold">{event.title}</h2>
-        <p className="mt-2 text-slate-400">{event.location}</p>
-        <p className="mt-4 text-slate-300">{event.description}</p>
+      <div className="view-heading">
+        <h2 className="event-detail__title">{event.title}</h2>
+        <p className="event-detail__location">{event.location}</p>
+        <p className="event-detail__description">{event.description}</p>
       </div>
 
-      <div className="space-y-4">
+      <div className="card-list">
         {event.ticketTypes.map((ticket) => {
           const quantity = quantities[ticket.id] ?? 0;
 
           return (
             <div
               key={ticket.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-6"
+              className="ticket-card"
             >
               <div>
-                <h3 className="text-lg font-semibold">{ticket.name}</h3>
-                <p className="mt-1 text-indigo-400">
+                <h3 className="ticket-card__title">{ticket.name}</h3>
+                <p className="ticket-card__price">
                   {formatPrice(ticket.priceCents)}
                 </p>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="ticket-card__availability">
                   {ticket.availableQuantity} available
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="ticket-card__controls">
                 <button
                   type="button"
                   disabled={quantity === 0 || submitting || retryRequest !== null}
                   onClick={() => updateQuantity(ticket.id, quantity - 1)}
-                  className="h-10 w-10 rounded-lg bg-slate-800 text-xl disabled:opacity-40"
+                  className="ticket-card__quantity-button"
                 >
                   −
                 </button>
 
-                <span className="w-6 text-center">{quantity}</span>
+                <output className="ticket-card__quantity" aria-label={`${ticket.name} quantity`}>{quantity}</output>
 
                 <button
                   type="button"
@@ -281,7 +281,7 @@ function VisitorEventDetail({
                     submitting || retryRequest !== null
                   }
                   onClick={() => updateQuantity(ticket.id, quantity + 1)}
-                  className="h-10 w-10 rounded-lg bg-slate-800 text-xl disabled:opacity-40"
+                  className="ticket-card__quantity-button"
                 >
                   +
                 </button>
@@ -291,28 +291,28 @@ function VisitorEventDetail({
         })}
       </div>
 
-      <div className="mt-8 rounded-xl border border-slate-700 bg-slate-900 p-6">
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-medium">Total</span>
-          <span className="text-2xl font-bold">
+      <div className="checkout-summary">
+        <div className="checkout-summary__total">
+          <span className="checkout-summary__label">Total</span>
+          <span className="checkout-summary__amount">
             {formatPrice(totalCents)}
           </span>
         </div>
 
         {checkoutError && (
-          <p role="alert" className="mt-4 text-sm text-red-400">
+          <p role="alert" className="checkout-message checkout-message--error">
             {checkoutError}
           </p>
         )}
 
         {retryRequest && !submitting && (
-          <p role="status" className="mt-4 text-sm text-amber-400">
+          <p role="status" className="checkout-message checkout-message--warning">
             We could not verify your reservation. Retry to recover the same
             reservation before changing ticket quantities.
           </p>
         )}
 				{hasInsufficientAvailability && !retryRequest && (
-					<p role="alert" className="mt-4 text-sm text-amber-400">
+					<p role="alert" className="checkout-message checkout-message--warning">
 						Some tickets are no longer available in the selected quantity.
 						Please adjust your selection.
 					</p>
@@ -325,7 +325,7 @@ function VisitorEventDetail({
             (!retryRequest && (selectedItems.length === 0 || hasInsufficientAvailability))
 					}
           onClick={() => void handleCheckout()}
-          className="mt-6 w-full rounded-lg bg-indigo-600 px-5 py-3 font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="button button--primary checkout-summary__submit"
         >
           {submitting ? 'Reserving tickets...' : retryRequest ? 'Retry reservation' : 'Reserve tickets'}
         </button>

@@ -1,9 +1,43 @@
-.header {
-    background-color: @background-color;
-    color: @text-color;
-  
-    &__title {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+.app-header {
+  border-bottom: 1px solid @border-color;
+  background: @surface-color;
+
+  &__content {
+    .container();
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1rem;
   }
+
+  &__title {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+}
+
+.visitor-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  &__select {
+    border: 1px solid @strong-border-color;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: @control-color;
+    color: @text-color;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  &__add {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}

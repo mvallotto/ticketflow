@@ -9,10 +9,10 @@ export function VisitorSwitcher() {
   } = useVisitor();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="visitor-switcher">
       <label
         htmlFor="visitor-select"
-        className="text-sm text-slate-400"
+        className="field-label"
       >
         Visitor
       </label>
@@ -21,7 +21,7 @@ export function VisitorSwitcher() {
         id="visitor-select"
         value={activeVisitor.id}
         onChange={(event) => selectVisitor(event.target.value)}
-        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+        className="visitor-switcher__select"
       >
         {visitors.map((visitor) => (
           <option key={visitor.id} value={visitor.id}>
@@ -33,7 +33,7 @@ export function VisitorSwitcher() {
       <button
         type="button"
         onClick={addVisitor}
-        className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+        className="button button--primary visitor-switcher__add"
       >
         + Add visitor
       </button>
