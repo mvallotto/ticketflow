@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -8,5 +8,9 @@ export default defineConfig({
       DATABASE_URL:
         'postgresql://ticketflow:ticketflow@localhost:5433/ticketflow_test',
     },
+    exclude: [
+      ...configDefaults.exclude,
+      '**/dist/**',
+    ],
   },
 });

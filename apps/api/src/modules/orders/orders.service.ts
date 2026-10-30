@@ -1,5 +1,5 @@
 
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import {
     events,
@@ -11,12 +11,30 @@ import {
 
 const RESERVATION_MINUTES = 10;
 
-export interface CreateOrderInput {
+export type CreateOrderInput = {
+  visitorId: string;
+  idempotencyKey: string;
   eventId: string;
   items: {
     ticketTypeId: string;
     quantity: number;
   }[];
+};
+
+export async function listOrdersByVisitor(visitorId: string) {
+  return db
+    .select({
+      id: orders.id,
+      eventId: orders.eventId,
+      status: orders.status,
+      totalCents: orders.totalCents,
+      createdAt: orders.createdAt,
+      expiresAt: orders.expiresAt,
+      confirmedAt: orders.confirmedAt,
+    })
+    .from(orders)
+    .where(eq(orders.visitorId, visitorId))
+    .orderBy(desc(orders.createdAt));
 }
 
 export class OrderError extends Error {
@@ -41,6 +59,66 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   return db.transaction(async (tx) => {
+    // Serialize concurrent requests with the same visitor and idempotency key.
+    await tx.execute(sql`
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(
+          ${input.visitorId} || ':' || ${input.idempotencyKey},
+          0
+        )
+      )
+    `);
+
+    const [existingOrder] = await tx
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.visitorId, input.visitorId),
+          eq(orders.idempotencyKey, input.idempotencyKey),
+        ),
+      )
+      .limit(1);
+
+    if (existingOrder) {
+      const existingItems = await tx
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.orderId, existingOrder.id));
+
+      const sameRequest =
+        existingOrder.eventId === input.eventId &&
+        existingItems.length === items.length &&
+        items.every((item) =>
+          existingItems.some(
+            (stored) =>
+              stored.ticketTypeId === item.ticketTypeId &&
+              stored.quantity === item.quantity,
+          ),
+        );
+
+      if (!sameRequest) {
+        throw new OrderError(
+          'Idempotency key was already used with different order data',
+          409,
+        );
+      }
+
+      return {
+        id: existingOrder.id,
+        visitorId: existingOrder.visitorId,
+        idempotencyKey: existingOrder.idempotencyKey,
+        status: existingOrder.status,
+        totalCents: existingOrder.totalCents,
+        expiresAt: existingOrder.expiresAt,
+        items: existingItems.map((item) => ({
+          ticketTypeId: item.ticketTypeId,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+        })),
+      };
+    }
+
     const [event] = await tx
       .select({ id: events.id })
       .from(events)
@@ -104,12 +182,16 @@ export async function createOrder(input: CreateOrderInput) {
       .insert(orders)
       .values({
         eventId: input.eventId,
+        visitorId: input.visitorId,
+        idempotencyKey: input.idempotencyKey,
         status: 'PENDING',
         totalCents,
         expiresAt: sql`now() + interval '10 minutes'`,
       })
       .returning({
         id: orders.id,
+        visitorId: orders.visitorId,
+        idempotencyKey: orders.idempotencyKey,
         status: orders.status,
         totalCents: orders.totalCents,
         expiresAt: orders.expiresAt,
@@ -128,7 +210,6 @@ export async function createOrder(input: CreateOrderInput) {
     };
   });
 }
-
 
 export async function confirmOrder(orderId: string) {
     const result = await db.transaction(async (tx) => {

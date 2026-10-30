@@ -3,20 +3,50 @@ import type { FastifyInstance } from 'fastify';
 import {
   createOrder,
   confirmOrder,
+  listOrdersByVisitor,
   OrderError,
   type CreateOrderInput,
 } from './orders.service.js';
 
 export async function orderRoutes(app: FastifyInstance) {
+  app.get<{ Querystring: { visitorId: string } }>(
+    '/orders',
+    {
+      schema: {
+        querystring: {
+          type: 'object',
+          required: ['visitorId'],
+          additionalProperties: false,
+          properties: {
+            visitorId: {
+              type: 'string',
+              format: 'uuid',
+            },
+          },
+        },
+      },
+    },
+    async (request) => {
+      return listOrdersByVisitor(request.query.visitorId);
+    },
+  );
   app.post<{ Body: CreateOrderInput }>(
     '/orders',
     {
       schema: {
         body: {
           type: 'object',
-          required: ['eventId', 'items'],
+          required: ['visitorId', 'idempotencyKey', 'eventId', 'items'],
           additionalProperties: false,
           properties: {
+            visitorId: {
+              type: 'string',
+              format: 'uuid',
+            },
+            idempotencyKey: {
+              type: 'string',
+              format: 'uuid',
+            },
             eventId: {
               type: 'string',
               format: 'uuid',

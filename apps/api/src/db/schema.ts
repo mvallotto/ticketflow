@@ -55,28 +55,53 @@ import {
       ),
     ],
   );
-  
   export const orders = pgTable(
     'orders',
     {
-      id: uuid('id').primaryKey().defaultRandom(),
-      eventId: uuid('event_id')
-        .notNull()
-        .references(() => events.id),
-      status: orderStatus('status').notNull().default('PENDING'),
-      totalCents: integer('total_cents').notNull(),
-      expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-      createdAt: timestamp('created_at', { withTimezone: true })
-        .notNull()
-        .defaultNow(),
-      confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
-    },
-    (table) => [
-      index('orders_event_id_idx').on(table.eventId),
-      index('orders_status_expires_at_idx').on(table.status, table.expiresAt),
-      check('orders_total_nonnegative', sql`${table.totalCents} >= 0`),
-    ],
-  );
+    id: uuid('id').primaryKey().defaultRandom(),
+  
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id),
+  
+    visitorId: uuid('visitor_id').notNull(),
+  
+    idempotencyKey: uuid('idempotency_key').notNull(),
+  
+    status: orderStatus('status').notNull().default('PENDING'),
+  
+    totalCents: integer('total_cents').notNull(),
+  
+    expiresAt: timestamp('expires_at', {
+      withTimezone: true,
+    }).notNull(),
+  
+    createdAt: timestamp('created_at', {
+      withTimezone: true,
+    }).notNull().defaultNow(),
+  
+    confirmedAt: timestamp('confirmed_at', {
+      withTimezone: true,
+    }),
+  }, (table) => [
+    index('orders_event_id_idx').on(table.eventId),
+    index('orders_visitor_id_idx').on(table.visitorId),
+  
+    uniqueIndex('orders_visitor_idempotency_unique').on(
+      table.visitorId,
+      table.idempotencyKey,
+    ),
+  
+    index('orders_status_expires_at_idx').on(
+      table.status,
+      table.expiresAt,
+    ),
+  
+    check(
+      'orders_total_nonnegative',
+      sql`${table.totalCents} >= 0`,
+    ),
+  ]);
   
   export const orderItems = pgTable(
     'order_items',
@@ -124,3 +149,5 @@ import {
       ),
     ],
   );
+
+  

@@ -49,6 +49,8 @@ describe('Order reservations', () => {
 		const { event, types } = await createTestEvent([10, 1]);
 
 		const request = {
+			visitorId: crypto.randomUUID(),
+			idempotencyKey: crypto.randomUUID(),
 			eventId: event.id,
 			items: [
 				{ ticketTypeId: types[0].id, quantity: 2 },
@@ -117,8 +119,16 @@ describe('Order reservations', () => {
 
     // Both requests attempt to reserve the same last ticket.
     const results = await Promise.allSettled([
-      createOrder(request),
-      createOrder(request),
+			createOrder({
+				...request,
+				visitorId: crypto.randomUUID(),
+				idempotencyKey: crypto.randomUUID(),
+			}),
+			createOrder({
+				...request,
+				visitorId: crypto.randomUUID(),
+				idempotencyKey: crypto.randomUUID(),
+			}),
     ]);
 
     const successful = results.filter(
@@ -162,6 +172,8 @@ describe('Order reservations', () => {
 		const { event, types } = await createTestEvent([10]);
 
 		const order = await createOrder({
+			visitorId: crypto.randomUUID(),
+			idempotencyKey: crypto.randomUUID(),
 			eventId: event.id,
 			items: [
 				{ ticketTypeId: types[0].id, quantity: 2 },
@@ -194,6 +206,8 @@ describe('Order reservations', () => {
 		const { event, types } = await createTestEvent([5]);
 
 		const order = await createOrder({
+			visitorId: crypto.randomUUID(),
+			idempotencyKey: crypto.randomUUID(),
 			eventId: event.id,
 			items: [
 				{ ticketTypeId: types[0].id, quantity: 2 },
@@ -226,6 +240,74 @@ describe('Order reservations', () => {
 		expect(inventory.reservedQuantity).toBe(0);
 		expect(inventory.soldQuantity).toBe(2);
 		expect(issuedTickets).toHaveLength(2);
+	});
+	
+	it('creates only one order for concurrent requests with the same idempotency key', async () => {
+		const { event, types } = await createTestEvent([10]);
+
+		const request = {
+			visitorId: crypto.randomUUID(),
+			idempotencyKey: crypto.randomUUID(),
+			eventId: event.id,
+			items: [
+				{ ticketTypeId: types[0].id, quantity: 2 },
+			],
+		};
+
+		const [first, second] = await Promise.all([
+			createOrder(request),
+			createOrder(request),
+		]);
+
+		expect(first.id).toBe(second.id);
+
+		const storedOrders = await db
+			.select()
+			.from(orders)
+			.where(eq(orders.eventId, event.id));
+
+		expect(storedOrders).toHaveLength(1);
+
+		const [inventory] = await db
+			.select()
+			.from(ticketTypes)
+			.where(eq(ticketTypes.id, types[0].id));
+
+		expect(inventory.reservedQuantity).toBe(2);
+		expect(inventory.soldQuantity).toBe(0);
+	});
+		
+	it('rejects reusing an idempotency key with different order data', async () => {
+		const { event, types } = await createTestEvent([10]);
+
+		const request = {
+			visitorId: crypto.randomUUID(),
+			idempotencyKey: crypto.randomUUID(),
+			eventId: event.id,
+			items: [
+				{ ticketTypeId: types[0].id, quantity: 1 },
+			],
+		};
+
+		await createOrder(request);
+
+		await expect(
+			createOrder({
+				...request,
+				items: [
+					{ ticketTypeId: types[0].id, quantity: 3 },
+				],
+			}),
+		).rejects.toMatchObject({
+			statusCode: 409,
+		});
+
+		const [inventory] = await db
+			.select()
+			.from(ticketTypes)
+			.where(eq(ticketTypes.id, types[0].id));
+
+		expect(inventory.reservedQuantity).toBe(1);
 	});
 
 });
