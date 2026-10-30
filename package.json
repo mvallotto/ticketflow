@@ -9,5 +9,8 @@
     "dev:api": "npm run dev -w @ticketflow/api",
     "build:api": "npm run build -w @ticketflow/api",
     "typecheck:api": "npm run typecheck -w @ticketflow/api"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
   }
 }

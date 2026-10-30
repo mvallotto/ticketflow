@@ -1,4 +1,3 @@
-
 import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../../db/client.js';
 import {
@@ -48,8 +47,7 @@ export class OrderError extends Error {
 }
 
 export async function createOrder(input: CreateOrderInput) {
-  // A deterministic order reduces the risk of deadlocks when
-  // concurrent requests reserve multiple ticket types.
+  // Reserve ticket types in the same order to reduce deadlocks.
   const items = [...input.items].sort((a, b) =>
     a.ticketTypeId.localeCompare(b.ticketTypeId),
   );
@@ -59,7 +57,7 @@ export async function createOrder(input: CreateOrderInput) {
   }
 
   return db.transaction(async (tx) => {
-    // Serialize concurrent requests with the same visitor and idempotency key.
+    // Serialize retries across API instances before checking for an existing order.
     await tx.execute(sql`
       SELECT pg_advisory_xact_lock(
         hashtextextended(
@@ -138,9 +136,8 @@ export async function createOrder(input: CreateOrderInput) {
     }[] = [];
 
     for (const item of items) {
-      // Atomically reserve inventory only if enough tickets remain.
-      // PostgreSQL rechecks the condition after waiting for a
-      // concurrent transaction updating the same row.
+      // Reserve only if enough tickets remain. PostgreSQL rechecks this condition
+      // after waiting for another transaction to update the same inventory row.
       const [reserved] = await tx
         .update(ticketTypes)
         .set({
@@ -177,7 +174,7 @@ export async function createOrder(input: CreateOrderInput) {
       });
     }
 
-    // Use the database clock for the reservation expiry.
+    // Start the deadline from the database transaction time.
     const [createdOrder] = await tx
       .insert(orders)
       .values({
@@ -213,7 +210,7 @@ export async function createOrder(input: CreateOrderInput) {
 
 export async function confirmOrder(orderId: string) {
     const result = await db.transaction(async (tx) => {
-      // Lock the order row to serialize concurrent confirmations.
+      // Confirmation and expiration share this lock to protect inventory and tickets.
       const [order] = await tx
         .select()
         .from(orders)
@@ -244,9 +241,9 @@ export async function confirmOrder(orderId: string) {
         .from(orderItems)
         .where(eq(orderItems.orderId, order.id));
   
-      // Compare against the database clock, not the API server clock.
+      // Use current database time: now() stays fixed while waiting for the lock.
       const result = await tx.execute<{ expired: boolean }>(
-        sql`SELECT ${order.expiresAt} <= now() AS expired`,
+        sql`SELECT ${order.expiresAt} <= clock_timestamp() AS expired`,
       );
       
       const expired = result.rows[0].expired;
@@ -266,7 +263,7 @@ export async function confirmOrder(orderId: string) {
           .set({ status: 'EXPIRED' })
           .where(eq(orders.id, order.id));
   
-        // Commit the release instead of throwing and rolling back.
+        // Commit the inventory release before reporting the error outside the transaction.
         return { outcome: 'EXPIRED' as const };
       }
   
@@ -326,4 +323,3 @@ export async function confirmOrder(orderId: string) {
   
     return result.order;
   }
-  

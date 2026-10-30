@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+// Tests must never connect to the development database or a remote server.
 if (process.env.VITEST) {
   const databaseUrl = process.env.DATABASE_URL;
 
