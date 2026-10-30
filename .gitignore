@@ -5,3 +5,11 @@ coverage/
 .env.*
 !.env.example
 *.log
+
+# TypeScript and ESLint caches
+*.tsbuildinfo
+.eslintcache
+
+# Operating system files
+.DS_Store
+Thumbs.db
